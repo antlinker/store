@@ -1,8 +1,6 @@
-package store_test
+package qiniu_test
 
 import (
-	"fmt"
-	"io"
 	"os"
 	"testing"
 
@@ -30,42 +28,34 @@ func TestQiniuUpdate(t *testing.T) {
 func getToken(t *testing.T) {
 	t.Log(store.GetVisitURL("1464256-6373bdb2116a78c5.png-imageView2/0/w/48/h/48"))
 }
-
-func testRead(t *testing.T) {
-	r, err := store.DefaultStore.GetReader("test.txt")
+func testReaderUpdate(t *testing.T) {
+	filename := "README.md"
+	dstfile := "README2.md"
+	f, _ := os.Open(filename)
+	s, _ := os.Stat(filename)
+	err := store.SaveReader(filename, f, s.Size())
 	if err != nil {
-		t.Errorf("失败:%s", err)
+		t.Error(err)
 		return
 	}
-	if r == nil {
-		t.Errorf("读取失败!")
-		return
-	}
-	fmt.Println("")
-	io.Copy(os.Stdout, r)
-	fmt.Println("")
-	t.Log("\nok\n")
-}
 
-func testMultifilePackaging(t *testing.T) {
-	tf, err := os.Create("test.zip")
+	e, err := store.IsExists(filename)
 	if err != nil {
-		t.Errorf("失败:%s", err)
+		t.Error(err)
 		return
 	}
-	err = store.DefaultStore.MultifilePackaging(tf,
-		store.FileAlias{
-			Alias: "a/test.txt",
-			Key:   "test.txt",
-		},
-
-		store.FileAlias{
-			Alias: "a/bannerTop.png",
-			Key:   "bannerTop.png",
-		},
-	)
-	if err != nil {
-		t.Errorf("失败:%s", err)
+	if !e {
+		t.Error("文件应该存在")
 		return
 	}
+	size, err := store.Fsize(filename)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if size != int64(s.Size()) {
+		t.Error("获取大小错误")
+		return
+	}
+	store.Move(filename, dstfile)
 }

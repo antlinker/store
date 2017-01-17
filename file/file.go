@@ -1,4 +1,4 @@
-package store
+package file
 
 import (
 	"archive/zip"
@@ -7,25 +7,53 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"path/filepath"
 	"time"
+
+	"github.com/antlinker/store"
 )
 
-// InitFileStore 初始化文件存储
-func InitFileStore() {
-	DefaultStore = &fileStore{}
+// InitStore 初始化文件存储
+func InitStore(rootDir string) error {
+	ds, err := CreateStore(rootDir)
+	store.DefaultStore = ds
+	return err
 }
 
-// CreateFileStore 创建一个文件存储
-func CreateFileStore() Storer {
-	return &fileStore{}
+// CreateStore 创建一个文件存储
+func CreateStore(rootDir string) (store.Storer, error) {
+	r, err := filepath.Abs(rootDir)
+	if err != nil {
+		return nil, fmt.Errorf("设置根目录失败:%s", err)
+	}
+	return &fileStore{rootDir: r}, nil
 }
 
 type fileStore struct {
-	base string
+	rootDir string
+	base    string
 }
 
 func mkdirs(filename string) error {
 	return os.MkdirAll(path.Dir(filename), os.ModePerm)
+}
+func (s *fileStore) abs(dst string) string {
+
+	n := "/" + dst
+	fname := filepath.Base(n)
+	path := filepath.Dir(n)
+	if path == "/" && fname == "/" {
+		return s.rootDir
+	}
+	//fmt.Println("abs dst:", s.rootDir,dst)
+
+	if path == "/" {
+		//fmt.Println("abs:", s.rootDir + path  + fname)
+		return s.rootDir + path + fname
+	}
+	fmt.Println("abs:", s.rootDir+path+"/"+fname)
+	return s.rootDir + path + "/" + fname
+
 }
 func (s *fileStore) SetVisitHTTPBase(path string) {
 	s.base = path
@@ -34,6 +62,9 @@ func (s *fileStore) GetVisitURL(key string) string {
 	return fmt.Sprintf("%s/%s", s.base, key)
 }
 func (s *fileStore) Copy(src, dst string) error {
+	src = s.abs(src)
+
+	dst = s.abs(dst)
 
 	srcFile, err := os.Open(src)
 	if err != nil {
@@ -53,15 +84,21 @@ func (s *fileStore) Copy(src, dst string) error {
 	return err
 }
 func (s *fileStore) Move(src, dst string) error {
+	src = s.abs(src)
+
+	dst = s.abs(dst)
 	return os.Rename(src, dst)
 }
 
 // SaveFile 将数据data存储到filenamet
 func (s *fileStore) SaveData(filename string, data []byte) (err error) {
+	filename = s.abs(filename)
+
 	mkdirs(filename)
 	return ioutil.WriteFile(filename, data, os.ModePerm)
 }
 func (s *fileStore) SaveReader(filename string, data io.Reader, size int64) (err error) {
+	filename = s.abs(filename)
 	mkdirs(filename)
 	f, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.ModePerm)
 	if err != nil {
@@ -105,6 +142,7 @@ func (s *fileStore) SaveReader(filename string, data io.Reader, size int64) (err
 	return err
 }
 func (s *fileStore) SaveFile(filename string, srcfile string) (err error) {
+	filename = s.abs(filename)
 	mkdirs(filename)
 	f, err := os.OpenFile(srcfile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.ModePerm)
 	if err != nil {
@@ -136,6 +174,7 @@ func (s *fileStore) UpdateReader(filename string, data io.Reader, size int64) (e
 	return s.SaveReader(filename, data, size)
 }
 func (s *fileStore) IsExists(filename string) (bool, error) {
+	filename = s.abs(filename)
 	_, err := os.Stat(filename)
 	if err != nil {
 		r := os.IsNotExist(err)
@@ -147,6 +186,7 @@ func (s *fileStore) IsExists(filename string) (bool, error) {
 	return true, nil
 }
 func (s *fileStore) Fsize(filename string) (int64, error) {
+	filename = s.abs(filename)
 	inf, err := os.Stat(filename)
 	if err != nil {
 		return 0, err
@@ -155,6 +195,7 @@ func (s *fileStore) Fsize(filename string) (int64, error) {
 
 }
 func (s *fileStore) PutTime(filename string) (time.Time, error) {
+	filename = s.abs(filename)
 	inf, err := os.Stat(filename)
 	if err != nil {
 		return time.Time{}, err
@@ -165,12 +206,13 @@ func (s *fileStore) PutTime(filename string) (time.Time, error) {
 // 获取文件流
 // 从本地获取一个可以关闭的文件流
 func (s *fileStore) GetReader(key string) (io.ReadCloser, error) {
+	key = s.abs(key)
 	return os.Open(key)
 }
 
 // 文件打包
 // packfile 返回打包文件路径
-func (s *fileStore) MultifilePackaging(w io.Writer, keys ...FileAlias) (err error) {
+func (s *fileStore) MultifilePackaging(w io.Writer, keys ...store.FileAlias) (err error) {
 	//buffer := new(bytes.Buffer)
 	writer := zip.NewWriter(w)
 	defer writer.Close()
@@ -187,13 +229,19 @@ func (s *fileStore) MultifilePackaging(w io.Writer, keys ...FileAlias) (err erro
 			break
 		}
 
-		f, err := os.Open(file.Key)
+		f, err := os.Open(s.abs(file.Key))
 		if err != nil {
 			errInfo = err
+			f.Close()
 			break
 		}
-		defer f.Close()
-		io.Copy(w, f)
+		_, err = io.Copy(w, f)
+		if err != nil {
+			errInfo = err
+			f.Close()
+			break
+		}
+		f.Close()
 	}
 	return errInfo
 }

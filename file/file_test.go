@@ -1,10 +1,11 @@
-package store_test
+package file_test
 
 import "testing"
-import . "github.com/antlinker/store"
+
+import "github.com/antlinker/store/file"
 
 func TestFileUpdate(t *testing.T) {
-	InitFileStore()
+	file.InitStore("")
 	testUpdate(t)
 	testRead(t)
 	testMultifilePackaging(t)

@@ -1,4 +1,4 @@
-package store_test
+package file_test
 
 import (
 	"bytes"
@@ -7,15 +7,8 @@ import (
 	"testing"
 
 	. "github.com/antlinker/store"
-	"github.com/antlinker/store/file"
 )
 
-func TestFileUpdate(t *testing.T) {
-	file.InitStore("")
-	testUpdate(t)
-	testRead(t)
-	testMultifilePackaging(t)
-}
 func testUpdate(t *testing.T) {
 	data1 := []byte("test123132312123")
 	data2 := []byte("test1231323")
@@ -78,9 +71,9 @@ func testRead(t *testing.T) {
 		t.Error(err)
 	}
 	defer func() {
-		err1 := DeleteFile(filename1)
-		if err1 != nil {
-			t.Error(err1)
+		err := DeleteFile(filename1)
+		if err != nil {
+			t.Error(err)
 		}
 	}()
 
@@ -104,7 +97,7 @@ func testRead(t *testing.T) {
 	data := buff.Bytes()
 
 	if bytes.Compare(data1, data) != 0 {
-		t.Errorf("读取的数据不是存入数据:%s", data)
+		t.Error("读取的数据不是存入数据:%s", data)
 		return
 	}
 
@@ -122,9 +115,9 @@ func testMultifilePackaging(t *testing.T) {
 		t.Error(err)
 	}
 	defer func() {
-		err1 := DeleteFile(filename1)
-		if err1 != nil {
-			t.Error(err1)
+		err := DeleteFile(filename1)
+		if err != nil {
+			t.Error(err)
 		}
 	}()
 	err = SaveData(filename2, data2)
@@ -132,9 +125,9 @@ func testMultifilePackaging(t *testing.T) {
 		t.Error(err)
 	}
 	defer func() {
-		err1 := DeleteFile(filename2)
-		if err1 != nil {
-			t.Error(err1)
+		err := DeleteFile(filename2)
+		if err != nil {
+			t.Error(err)
 		}
 	}()
 	tf, err := os.Create(zipfname)

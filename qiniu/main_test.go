@@ -1,4 +1,4 @@
-package store_test
+package qiniu_test
 
 import (
 	"bytes"
@@ -7,15 +7,8 @@ import (
 	"testing"
 
 	. "github.com/antlinker/store"
-	"github.com/antlinker/store/file"
 )
 
-func TestFileUpdate(t *testing.T) {
-	file.InitStore("")
-	testUpdate(t)
-	testRead(t)
-	testMultifilePackaging(t)
-}
 func testUpdate(t *testing.T) {
 	data1 := []byte("test123132312123")
 	data2 := []byte("test1231323")

@@ -1,4 +1,4 @@
-package store
+package qiniu
 
 import (
 	"archive/zip"
@@ -10,59 +10,61 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/antlinker/store"
+
 	"qiniupkg.com/api.v7/conf"
 	"qiniupkg.com/api.v7/kodo"
 	"qiniupkg.com/api.v7/kodocli"
 	"qiniupkg.com/x/rpc.v7"
 )
 
-// QiniuMgoCfg 七牛云配置
-type QiniuMgoCfg struct {
+// MgoCfg 七牛云配置
+type MgoCfg struct {
 	MgoURL string
 	Dbname string
 	Domain string
 	Bucket string
 }
 
-// CreDefaultQiniuStore 创建七牛云存储支持
-func CreDefaultQiniuStore(cfg QiniuMgoCfg) {
+// CreDefaultStore 创建七牛云存储支持
+func CreDefaultStore(cfg MgoCfg) {
 
-	StartQiniuKeyManagerByMGO(cfg.MgoURL, cfg.Dbname)
-	DefaultStore = CreateQiniuStore(cfg.Bucket, 3600)
-	SetVisitHTTPBase(cfg.Domain)
+	StartKeyManagerByMGO(cfg.MgoURL, cfg.Dbname)
+	store.DefaultStore = CreateStore(cfg.Bucket, 3600)
+	store.DefaultStore.SetVisitHTTPBase(cfg.Domain)
 }
 
-var defaultQiniuKeyManager QiniuKeyManager
+var defaultKeyManager KeyManager
 
-// UpdateQiniuKey 存储新的密钥
+// UpdateKey 存储新的密钥
 // 需要现创建密钥管理器
-func UpdateQiniuKey(ak, sk string) {
-	if defaultQiniuKeyManager != nil {
-		defaultQiniuKeyManager.Update(ak, sk)
+func UpdateKey(ak, sk string) {
+	if defaultKeyManager != nil {
+		defaultKeyManager.Update(ak, sk)
 	} else {
 		log.Printf("未创建密钥管理器")
 	}
 }
 
-// QiniuKeyManager 七牛云密钥管理
-type QiniuKeyManager interface {
-	QiniuKeyUpdater
+// KeyManager 七牛云密钥管理
+type KeyManager interface {
+	KeyUpdater
 	StartSync()
 }
 
-// QiniuKeySyncer 七牛云密钥同步
-type QiniuKeySyncer interface {
+// KeySyncer 七牛云密钥同步
+type KeySyncer interface {
 	Sync()
 }
 
-// QiniuKeyUpdater 七牛云密钥存储更新
-type QiniuKeyUpdater interface {
+// KeyUpdater 七牛云密钥存储更新
+type KeyUpdater interface {
 	Update(ak, sk string) error
 }
 
 type qiniuKeyManager struct {
-	syncer  QiniuKeySyncer
-	updater QiniuKeyUpdater
+	syncer  KeySyncer
+	updater KeyUpdater
 }
 
 func (m *qiniuKeyManager) Update(ak, sk string) error {
@@ -78,16 +80,16 @@ func (m *qiniuKeyManager) _sync() {
 	time.AfterFunc(time.Minute, m._sync)
 }
 
-// InitQiniuStore 初始化为七牛存储
-func InitQiniuStore(ak, ck, bucket string) {
+// InitStore 初始化为七牛存储
+func InitStore(ak, ck, bucket string) {
 	conf.ACCESS_KEY = ak
 	conf.SECRET_KEY = ck
 	kodo.SetMac(ak, ck)
-	DefaultStore = CreateQiniuStore(bucket, 3600)
+	store.DefaultStore = CreateStore(bucket, 3600)
 }
 
-// CreateQiniuStore 创建七牛存储
-func CreateQiniuStore(bucket string, expires int) Storer {
+// CreateStore 创建七牛存储
+func CreateStore(bucket string, expires int) store.Storer {
 
 	s := &qiniuStore{
 		bucket:  bucket,
@@ -215,8 +217,8 @@ func (s *qiniuStore) UpdateReader(filename string, data io.Reader, size int64) (
 func (s *qiniuStore) GetReader(key string) (io.ReadCloser, error) {
 	return s.getReader(key)
 }
-func (e *qiniuStore) getReader(key string) (io.ReadCloser, error) {
-	url := e.GetVisitURL(key)
+func (s *qiniuStore) getReader(key string) (io.ReadCloser, error) {
+	url := s.GetVisitURL(key)
 	res, err := http.Get(url)
 	if err != nil {
 		return nil, err
@@ -230,7 +232,7 @@ func (e *qiniuStore) getReader(key string) (io.ReadCloser, error) {
 
 // 文件打包
 // packfile 返回打包文件路径
-func (s *qiniuStore) MultifilePackaging(w io.Writer, keys ...FileAlias) (err error) {
+func (s *qiniuStore) MultifilePackaging(w io.Writer, keys ...store.FileAlias) (err error) {
 	//buffer := new(bytes.Buffer)
 	writer := zip.NewWriter(w)
 	defer writer.Close()

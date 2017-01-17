@@ -1,4 +1,4 @@
-package store
+package qiniu
 
 import (
 	"fmt"
@@ -42,8 +42,8 @@ func getSession() (*mgo.Session, error) {
 	return session.Clone(), nil
 }
 
-// CreateQiniuKeyManagerByMGO 创建七牛云密钥管理
-func CreateQiniuKeyManagerByMGO(url, name string) QiniuKeyManager {
+// CreateKeyManagerByMGO 创建七牛云密钥管理
+func CreateKeyManagerByMGO(url, name string) KeyManager {
 	mgoInitConfig(url, name)
 	return &qiniuKeyManager{
 		syncer:  &qiniuKeySyncByMgo{},
@@ -51,14 +51,14 @@ func CreateQiniuKeyManagerByMGO(url, name string) QiniuKeyManager {
 	}
 }
 
-// StartQiniuKeyManagerByMGO 开始同步七牛云密钥
-func StartQiniuKeyManagerByMGO(url, name string) {
+// StartKeyManagerByMGO 开始同步七牛云密钥
+func StartKeyManagerByMGO(url, name string) {
 	mgoInitConfig(url, name)
-	defaultQiniuKeyManager = &qiniuKeyManager{
+	defaultKeyManager = &qiniuKeyManager{
 		syncer:  &qiniuKeySyncByMgo{},
 		updater: &qiniuKeyUpdateByMgo{},
 	}
-	defaultQiniuKeyManager.StartSync()
+	defaultKeyManager.StartSync()
 }
 
 type qiniuKeySyncByMgo struct {
