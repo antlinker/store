@@ -111,3 +111,13 @@ func SetVisitHTTPBase(path string) {
 func GetVisitURL(key string) string {
 	return DefaultStore.GetVisitURL(key)
 }
+
+// MultifilePackaging 多文件打包
+func MultifilePackaging(w io.Writer, keys ...FileAlias) (err error) {
+	return DefaultStore.MultifilePackaging(w, keys...)
+}
+
+// GetReader 获取文件流
+func GetReader(key string) (io.ReadCloser, error) {
+	return DefaultStore.GetReader(key)
+}

@@ -26,8 +26,8 @@ type MgoCfg struct {
 	Bucket string
 }
 
-// CreDefaultStore 创建七牛云存储支持
-func CreDefaultStore(cfg MgoCfg) {
+// CreDefaultStoreByMGO 创建七牛云存储支持
+func CreDefaultStoreByMGO(cfg MgoCfg) {
 
 	StartKeyManagerByMGO(cfg.MgoURL, cfg.Dbname)
 	store.DefaultStore = CreateStore(cfg.Bucket, 3600)
