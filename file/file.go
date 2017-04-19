@@ -253,6 +253,25 @@ func (s *fileStore) GetImageInfo(key string) (ii *store.ImageInfo, err error) {
 }
 
 func (s *fileStore) SaveReaderAt(filename string, data io.ReaderAt, size int64) (err error) {
+	file, err := os.Open(filename)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	var buff = make([]byte, 1024)
+	for off := int64(0); off < size; {
+
+		n, err := data.ReadAt(buff, off)
+		if err != nil {
+			return err
+		}
+		_, err = file.WriteAt(buff[0:n], off)
+		if err != nil {
+			return err
+		}
+		off += int64(n)
+	}
+
 	err = errors.New("文件存储暂不支持")
 	return
 }
