@@ -31,6 +31,18 @@ type Storer interface {
 	GetReader(key string) (io.ReadCloser, error)
 	// 文件打包
 	MultifilePackaging(w io.Writer, keys ...FileAlias) (err error)
+
+	// 获取图片信息
+	GetImageInfo(key string) (ii *ImageInfo, err error)
+}
+
+// ImageInfo 图片信息
+type ImageInfo struct {
+	Format      string `json:"format"`      // 图片类型，如pngjpeggifbmp等。
+	Width       int    `json:"width"`       // 图片宽度，单位：像素(px)。
+	Height      int    `json:"height"`      // 图片高度，单位：像素(px)。
+	ColorModel  string `json:"colorModel"`  // 彩色空间，如palette16ycbcr等。
+	FrameNumber int    `json:"frameNumber"` // 帧数，gif 图片会返回此项。
 }
 
 // FileAlias 文件别名映射

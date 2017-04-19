@@ -2,6 +2,7 @@ package file
 
 import (
 	"archive/zip"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -244,4 +245,9 @@ func (s *fileStore) MultifilePackaging(w io.Writer, keys ...store.FileAlias) (er
 		f.Close()
 	}
 	return errInfo
+}
+
+func (s *fileStore) GetImageInfo(key string) (ii *store.ImageInfo, err error) {
+	err = errors.New("文件存储暂不支持")
+	return
 }
