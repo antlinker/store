@@ -9,6 +9,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/antlinker/store"
@@ -180,7 +181,21 @@ func (s *qiniuStore) UpdateFile(filename string, srcfile string) (err error) {
 func (s *qiniuStore) _saveFile(filename string, srcfile string, token string) (err error) {
 	zone := 0
 	uploader := kodocli.NewUploader(zone, nil)
+
+	// if size > chunkSize {
+	// 	return uploader.Rput(nil, nil, token, filename, data, size, rputExtra)
+	// }
 	var ret kodocli.PutRet
+	f, err := os.Stat(srcfile)
+	if err != nil {
+		return err
+	}
+	if f.Size() > chunkSize {
+		//需要分块上传
+		uploader.RputFile(nil, &ret, token, filename, srcfile, &rputExtra)
+		return
+	}
+
 	err = uploader.PutFile(nil, &ret, token, filename, srcfile, nil)
 	//打印出错信息
 	if err != nil {
@@ -257,8 +272,8 @@ func (s *qiniuStore) MultifilePackaging(w io.Writer, keys ...store.FileAlias) (e
 			errInfo = err
 			break
 		}
-		defer f.Close()
 		io.Copy(w, f)
+		f.Close()
 	}
 	return errInfo
 }
@@ -275,8 +290,31 @@ func (s *qiniuStore) _saveData(filename string, data []byte, token string) (err 
 	}
 	return
 }
-func (s *qiniuStore) _saveReader(filename string, data io.Reader, size int64, token string) (err error) {
 
+const (
+	chunkSize int64 = 1024 * 1024 * 4
+)
+
+// type RputExtra struct {
+// 	Params     map[string]string                             // 可选。用户自定义参数，以"x:"开头 否则忽略
+// 	MimeType   string                                        // 可选。
+// 	ChunkSize  int                                           // 可选。每次上传的Chunk大小
+// 	TryTimes   int                                           // 可选。尝试次数
+// 	Progresses []BlkputRet                                   // 可选。上传进度
+// 	Notify     func(blkIdx int, blkSize int, ret *BlkputRet) // 可选。进度提示（注意多个block是并行传输的）
+// 	NotifyErr  func(blkIdx int, blkSize int, err error)
+// }
+var (
+	rputExtra = kodocli.RputExtra{
+		ChunkSize: int(chunkSize),
+		TryTimes:  10,
+		NotifyErr: func(blkIdx int, blkSize int, err error) {
+
+		},
+	}
+)
+
+func (s *qiniuStore) _saveReader(filename string, data io.Reader, size int64, token string) (err error) {
 	zone := 0
 	uploader := kodocli.NewUploader(zone, nil)
 	var ret kodocli.PutRet

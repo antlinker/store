@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/antlinker/store"
+	"github.com/antlinker/store/qiniu"
 )
 
 func TestQiniuUpdate(t *testing.T) {
@@ -16,7 +17,7 @@ func TestQiniuUpdate(t *testing.T) {
 	// 	Domain: "odufa0grd.bkt.clouddn.com",
 	// 	Bucket: "static-test",
 	// })
-	store.InitQiniuStore("", "", "mytest")
+	qiniu.InitStore("", "", "mytest")
 	store.SetVisitHTTPBase("")
 	//	testUpdate(t)
 	//	testReaderUpdate(t)
