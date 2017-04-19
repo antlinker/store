@@ -251,3 +251,8 @@ func (s *fileStore) GetImageInfo(key string) (ii *store.ImageInfo, err error) {
 	err = errors.New("文件存储暂不支持")
 	return
 }
+
+func (s *fileStore) SaveReaderAt(filename string, data io.ReaderAt, size int64) (err error) {
+	err = errors.New("文件存储暂不支持")
+	return
+}

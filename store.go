@@ -34,6 +34,8 @@ type Storer interface {
 
 	// 获取图片信息
 	GetImageInfo(key string) (ii *ImageInfo, err error)
+
+	SaveReaderAt(filename string, data io.ReaderAt, size int64) (err error)
 }
 
 // ImageInfo 图片信息

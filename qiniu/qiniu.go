@@ -3,6 +3,7 @@ package qiniu
 import (
 	"archive/zip"
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -17,6 +18,7 @@ import (
 	"qiniupkg.com/api.v7/conf"
 	"qiniupkg.com/api.v7/kodo"
 	"qiniupkg.com/api.v7/kodocli"
+	reqid "qiniupkg.com/x/reqid.v7"
 	"qiniupkg.com/x/rpc.v7"
 )
 
@@ -406,4 +408,18 @@ func (s *qiniuStore) GetImageInfo(key string) (ii *store.ImageInfo, err error) {
 	ii = &iis
 
 	return
+}
+
+func (s *qiniuStore) SaveReaderAt(filename string, data io.ReaderAt, size int64) (err error) {
+	token := s.getUploadToken()
+	return s._saveReaderAt(filename, data, size, token)
+}
+
+func (s *qiniuStore) _saveReaderAt(filename string, data io.ReaderAt, size int64, token string) (err error) {
+	zone := 0
+	uploader := kodocli.NewUploader(zone, nil)
+	var ret kodocli.PutRet
+
+	return uploader.Rput(reqid.NewContext(context.Background(), filename), &ret, token, filename, data, size, &rputExtra)
+
 }
