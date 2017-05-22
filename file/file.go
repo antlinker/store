@@ -2,7 +2,7 @@ package file
 
 import (
 	"archive/zip"
-	"errors"
+	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -247,31 +247,102 @@ func (s *fileStore) MultifilePackaging(w io.Writer, keys ...store.FileAlias) (er
 	return errInfo
 }
 
-func (s *fileStore) GetImageInfo(key string) (ii *store.ImageInfo, err error) {
-	err = errors.New("文件存储暂不支持")
-	return
+// 外部文件一起打包
+// packfile 返回打包文件路径
+func (s *fileStore) ExternalMultifilePackaging(w io.Writer, externalFiles []store.ExternalFileAlias, keys ...store.FileAlias) error {
+	writer := zip.NewWriter(w)
+	defer writer.Close()
+	var errInfo error
+	for _, file := range keys {
+		w, err := writer.CreateHeader(&zip.FileHeader{
+			Name:   file.Alias,
+			Flags:  1 << 11,
+			Method: zip.Deflate,
+		})
+		if err != nil {
+			errInfo = err
+			break
+		}
+
+		f, err := os.Open(s.abs(file.Key))
+		if err != nil {
+			errInfo = err
+			f.Close()
+			break
+		}
+		_, err = io.Copy(w, f)
+		if err != nil {
+			errInfo = err
+			f.Close()
+			break
+		}
+		f.Close()
+	}
+	if errInfo != nil {
+		return errInfo
+	}
+	// 处理外部文件
+	for _, externalFile := range externalFiles {
+		w, err := writer.CreateHeader(&zip.FileHeader{
+			Name:   externalFile.Alias,
+			Flags:  1 << 11,
+			Method: zip.Deflate,
+		})
+		if err != nil {
+			errInfo = err
+			break
+		}
+		io.Copy(w, externalFile.FileRead)
+	}
+	return errInfo
 }
 
-func (s *fileStore) SaveReaderAt(filename string, data io.ReaderAt, size int64) (err error) {
-	file, err := os.Open(filename)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-	var buff = make([]byte, 1024)
-	for off := int64(0); off < size; {
-
-		n, err := data.ReadAt(buff, off)
+// 外部文件一起打包，返回打包数据
+// packfile 返回打包文件路径
+func (s *fileStore) ExternalMultifileOutZipPackage(externalFiles []store.ExternalFileAlias, keys ...store.FileAlias) (*bytes.Buffer, error) {
+	buffer := new(bytes.Buffer)
+	writer := zip.NewWriter(buffer)
+	defer writer.Close()
+	var errInfo error
+	for _, file := range keys {
+		w, err := writer.CreateHeader(&zip.FileHeader{
+			Name:   file.Alias,
+			Flags:  1 << 11,
+			Method: zip.Deflate,
+		})
 		if err != nil {
-			return err
+			errInfo = err
+			break
 		}
-		_, err = file.WriteAt(buff[0:n], off)
+		f, err := os.Open(s.abs(file.Key))
 		if err != nil {
-			return err
+			errInfo = err
+			f.Close()
+			break
 		}
-		off += int64(n)
+		_, err = io.Copy(w, f)
+		if err != nil {
+			errInfo = err
+			f.Close()
+			break
+		}
+		f.Close()
 	}
-
-	err = errors.New("文件存储暂不支持")
-	return
+	if errInfo != nil {
+		return nil, errInfo
+	}
+	// 处理外部文件
+	for _, externalFile := range externalFiles {
+		w, err := writer.CreateHeader(&zip.FileHeader{
+			Name:   externalFile.Alias,
+			Flags:  1 << 11,
+			Method: zip.Deflate,
+		})
+		if err != nil {
+			errInfo = err
+			break
+		}
+		io.Copy(w, externalFile.FileRead)
+	}
+	return buffer, errInfo
 }

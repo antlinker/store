@@ -3,14 +3,11 @@ package qiniu
 import (
 	"archive/zip"
 	"bytes"
-	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/antlinker/store"
@@ -18,17 +15,15 @@ import (
 	"qiniupkg.com/api.v7/conf"
 	"qiniupkg.com/api.v7/kodo"
 	"qiniupkg.com/api.v7/kodocli"
-	reqid "qiniupkg.com/x/reqid.v7"
 	"qiniupkg.com/x/rpc.v7"
 )
 
 // MgoCfg 七牛云配置
 type MgoCfg struct {
-	MgoURL         string
-	Dbname         string
-	Domain         string
-	Bucket         string
-	ImageInfoStyle string // 图片信息获取样式名称
+	MgoURL string
+	Dbname string
+	Domain string
+	Bucket string
 }
 
 // CreDefaultStoreByMGO 创建七牛云存储支持
@@ -39,10 +34,7 @@ func CreDefaultStoreByMGO(cfg MgoCfg) {
 	store.DefaultStore.SetVisitHTTPBase(cfg.Domain)
 }
 
-var (
-	defaultKeyManager KeyManager
-	imageInfoStyle    string
-)
+var defaultKeyManager KeyManager
 
 // UpdateKey 存储新的密钥
 // 需要现创建密钥管理器
@@ -183,21 +175,7 @@ func (s *qiniuStore) UpdateFile(filename string, srcfile string) (err error) {
 func (s *qiniuStore) _saveFile(filename string, srcfile string, token string) (err error) {
 	zone := 0
 	uploader := kodocli.NewUploader(zone, nil)
-
-	// if size > chunkSize {
-	// 	return uploader.Rput(nil, nil, token, filename, data, size, rputExtra)
-	// }
 	var ret kodocli.PutRet
-	f, err := os.Stat(srcfile)
-	if err != nil {
-		return err
-	}
-	if f.Size() > chunkSize {
-		//需要分块上传
-		uploader.RputFile(nil, &ret, token, filename, srcfile, &rputExtra)
-		return
-	}
-
 	err = uploader.PutFile(nil, &ret, token, filename, srcfile, nil)
 	//打印出错信息
 	if err != nil {
@@ -274,11 +252,102 @@ func (s *qiniuStore) MultifilePackaging(w io.Writer, keys ...store.FileAlias) (e
 			errInfo = err
 			break
 		}
+		defer f.Close()
 		io.Copy(w, f)
-		f.Close()
 	}
 	return errInfo
 }
+
+// 外部文件一起打包
+// packfile 返回打包文件路径
+func (s *qiniuStore) ExternalMultifilePackaging(w io.Writer, externalFiles []store.ExternalFileAlias, keys ...store.FileAlias) error {
+	//buffer := new(bytes.Buffer)
+	writer := zip.NewWriter(w)
+	defer writer.Close()
+	var errInfo error
+	for _, file := range keys {
+		wz, err := writer.CreateHeader(&zip.FileHeader{
+			Name:   file.Alias,
+			Flags:  1 << 11,
+			Method: zip.Deflate,
+		})
+		if err != nil {
+			errInfo = err
+			break
+		}
+		f, err := s.getReader(file.Key)
+		if err != nil {
+			errInfo = err
+			break
+		}
+
+		io.Copy(wz, f)
+		f.Close()
+	}
+	if errInfo != nil {
+		return errInfo
+	}
+	// 处理外部文件
+	for _, externalFile := range externalFiles {
+		wz, err := writer.CreateHeader(&zip.FileHeader{
+			Name:   externalFile.Alias,
+			Flags:  1 << 11,
+			Method: zip.Deflate,
+		})
+		if err != nil {
+			errInfo = err
+			break
+		}
+		io.Copy(wz, externalFile.FileRead)
+	}
+	return errInfo
+}
+
+// 外部文件一起打包，返回打包数据
+// packfile 返回打包文件路径
+func (s *qiniuStore) ExternalMultifileOutZipPackage(externalFiles []store.ExternalFileAlias, keys ...store.FileAlias) (*bytes.Buffer, error) {
+	buffer := new(bytes.Buffer)
+	writer := zip.NewWriter(buffer)
+	defer writer.Close()
+	var errInfo error
+	for _, file := range keys {
+		w, err := writer.CreateHeader(&zip.FileHeader{
+			Name:   file.Alias,
+			Flags:  1 << 11,
+			Method: zip.Deflate,
+		})
+		if err != nil {
+			errInfo = err
+			break
+		}
+		f, err := s.getReader(file.Key)
+		if err != nil {
+			errInfo = err
+			break
+		}
+
+		io.Copy(w, f)
+		f.Close()
+	}
+	if errInfo != nil {
+		return nil, errInfo
+	}
+	// 处理外部文件
+	for _, externalFile := range externalFiles {
+		w, err := writer.CreateHeader(&zip.FileHeader{
+			Name:   externalFile.Alias,
+			Flags:  1 << 11,
+			Method: zip.Deflate,
+		})
+		if err != nil {
+			errInfo = err
+			break
+		}
+		io.Copy(w, externalFile.FileRead)
+	}
+	return buffer, errInfo
+}
+
 func (s *qiniuStore) _saveData(filename string, data []byte, token string) (err error) {
 
 	buff := bytes.NewBuffer(data)
@@ -292,31 +361,8 @@ func (s *qiniuStore) _saveData(filename string, data []byte, token string) (err 
 	}
 	return
 }
-
-const (
-	chunkSize int64 = 1024 * 1024 * 4
-)
-
-// type RputExtra struct {
-// 	Params     map[string]string                             // 可选。用户自定义参数，以"x:"开头 否则忽略
-// 	MimeType   string                                        // 可选。
-// 	ChunkSize  int                                           // 可选。每次上传的Chunk大小
-// 	TryTimes   int                                           // 可选。尝试次数
-// 	Progresses []BlkputRet                                   // 可选。上传进度
-// 	Notify     func(blkIdx int, blkSize int, ret *BlkputRet) // 可选。进度提示（注意多个block是并行传输的）
-// 	NotifyErr  func(blkIdx int, blkSize int, err error)
-// }
-var (
-	rputExtra = kodocli.RputExtra{
-		ChunkSize: int(chunkSize),
-		TryTimes:  10,
-		NotifyErr: func(blkIdx int, blkSize int, err error) {
-
-		},
-	}
-)
-
 func (s *qiniuStore) _saveReader(filename string, data io.Reader, size int64, token string) (err error) {
+
 	zone := 0
 	uploader := kodocli.NewUploader(zone, nil)
 	var ret kodocli.PutRet
@@ -377,49 +423,4 @@ func errCodeMatch(err error, code int) bool {
 	default:
 		return false
 	}
-}
-
-func (s *qiniuStore) GetImageInfo(key string) (ii *store.ImageInfo, err error) {
-	resp, err := http.Get(s.GetVisitURL(fmt.Sprintf("%s%s", key, imageInfoStyle)))
-	if err != nil {
-		return
-	}
-
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		var res struct {
-			Error string `json:"error"`
-		}
-
-		err = json.NewDecoder(resp.Body).Decode(&res)
-		if err != nil {
-			return
-		}
-		err = errors.New(res.Error)
-		return
-	}
-
-	var iis store.ImageInfo
-	err = json.NewDecoder(resp.Body).Decode(&iis)
-	if err != nil {
-		return
-	}
-	ii = &iis
-
-	return
-}
-
-func (s *qiniuStore) SaveReaderAt(filename string, data io.ReaderAt, size int64) (err error) {
-	token := s.getUploadToken()
-	return s._saveReaderAt(filename, data, size, token)
-}
-
-func (s *qiniuStore) _saveReaderAt(filename string, data io.ReaderAt, size int64, token string) (err error) {
-	zone := 0
-	uploader := kodocli.NewUploader(zone, nil)
-	var ret kodocli.PutRet
-
-	return uploader.Rput(reqid.NewContext(context.Background(), filename), &ret, token, filename, data, size, &rputExtra)
-
 }

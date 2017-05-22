@@ -62,11 +62,10 @@ func StartKeyManagerByMGO(url, name string) {
 }
 
 type qiniuKeySyncByMgo struct {
-	AK             string `bson:"ak"`
-	SK             string `bson:"sk"`
-	Version        int    `bson:"version"`
-	ImageInfoStyle string `bson:"iistyle"`
-	curv           int
+	AK      string `bson:"ak"`
+	SK      string `bson:"sk"`
+	Version int    `bson:"version"`
+	curv    int
 }
 
 func (m *qiniuKeySyncByMgo) Sync() {
@@ -75,7 +74,6 @@ func (m *qiniuKeySyncByMgo) Sync() {
 		fmt.Println("连接mgodb数据库失败:", err)
 		return
 	}
-	defer sess.Close()
 	coll := sess.DB(dbname).C(collname)
 	err = coll.Find(bson.M{"_id": 1}).One(m)
 	if err != nil {
@@ -88,7 +86,6 @@ func (m *qiniuKeySyncByMgo) Sync() {
 		conf.SECRET_KEY = m.SK
 		kodo.SetMac(m.AK, m.SK)
 		m.curv = m.Version
-		imageInfoStyle = m.ImageInfoStyle
 	}
 }
 
@@ -102,7 +99,6 @@ func (m *qiniuKeyUpdateByMgo) Update(ak, sk string) error {
 		log.Print("连接mgodb数据库失败:", err)
 		return err
 	}
-	defer sess.Close()
 	coll := sess.DB(dbname).C(collname)
 	_, err = coll.UpsertId(1, bson.M{"ak": ak, "sk": sk, "$inc": bson.M{"version": 1}})
 

@@ -1,6 +1,7 @@
 package store
 
 import (
+	"bytes"
 	"io"
 	"time"
 )
@@ -31,26 +32,22 @@ type Storer interface {
 	GetReader(key string) (io.ReadCloser, error)
 	// 文件打包
 	MultifilePackaging(w io.Writer, keys ...FileAlias) (err error)
-
-	// 获取图片信息
-	GetImageInfo(key string) (ii *ImageInfo, err error)
-
-	SaveReaderAt(filename string, data io.ReaderAt, size int64) (err error)
-}
-
-// ImageInfo 图片信息
-type ImageInfo struct {
-	Format      string `json:"format"`      // 图片类型，如pngjpeggifbmp等。
-	Width       int    `json:"width"`       // 图片宽度，单位：像素(px)。
-	Height      int    `json:"height"`      // 图片高度，单位：像素(px)。
-	ColorModel  string `json:"colorModel"`  // 彩色空间，如palette16ycbcr等。
-	FrameNumber int    `json:"frameNumber"` // 帧数，gif 图片会返回此项。
+	// 外部文件一起打包
+	ExternalMultifilePackaging(w io.Writer, externalFiles []ExternalFileAlias, keys ...FileAlias) (err error)
+	// 输出压缩包
+	ExternalMultifileOutZipPackage(externalFiles []ExternalFileAlias, keys ...FileAlias) (buffer *bytes.Buffer, err error)
 }
 
 // FileAlias 文件别名映射
 type FileAlias struct {
 	Key   string
 	Alias string
+}
+
+// ExternalFileAlias 文件别名映射
+type ExternalFileAlias struct {
+	FileRead io.Reader
+	Alias    string
 }
 
 // DefaultStore 默认存储
@@ -129,6 +126,16 @@ func GetVisitURL(key string) string {
 // MultifilePackaging 多文件打包
 func MultifilePackaging(w io.Writer, keys ...FileAlias) (err error) {
 	return DefaultStore.MultifilePackaging(w, keys...)
+}
+
+// ExternalMultifilePackaging 外部文件与七牛云文件一起打包
+func ExternalMultifilePackaging(w io.Writer, externalFiles []ExternalFileAlias, keys ...FileAlias) (err error) {
+	return DefaultStore.ExternalMultifilePackaging(w, externalFiles, keys...)
+}
+
+// ExternalMultifileOutZipPackage 打包后返回数据
+func ExternalMultifileOutZipPackage(externalFiles []ExternalFileAlias, keys ...FileAlias) (buffer *bytes.Buffer, err error) {
+	return DefaultStore.ExternalMultifileOutZipPackage(externalFiles, keys...)
 }
 
 // GetReader 获取文件流
