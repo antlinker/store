@@ -62,10 +62,11 @@ func StartKeyManagerByMGO(url, name string) {
 }
 
 type qiniuKeySyncByMgo struct {
-	AK      string `bson:"ak"`
-	SK      string `bson:"sk"`
-	Version int    `bson:"version"`
-	curv    int
+	AK             string `bson:"ak"`
+	SK             string `bson:"sk"`
+	Version        int    `bson:"version"`
+	ImageInfoStyle string `bson:"iistyle"`
+	curv           int
 }
 
 func (m *qiniuKeySyncByMgo) Sync() {
@@ -86,6 +87,7 @@ func (m *qiniuKeySyncByMgo) Sync() {
 		conf.SECRET_KEY = m.SK
 		kodo.SetMac(m.AK, m.SK)
 		m.curv = m.Version
+		imageInfoStyle = m.ImageInfoStyle
 	}
 }
 

@@ -3,6 +3,7 @@ package qiniu
 import (
 	"archive/zip"
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -20,10 +21,11 @@ import (
 
 // MgoCfg 七牛云配置
 type MgoCfg struct {
-	MgoURL string
-	Dbname string
-	Domain string
-	Bucket string
+	MgoURL         string
+	Dbname         string
+	Domain         string
+	Bucket         string
+	ImageInfoStyle string // 图片信息获取样式名称
 }
 
 // CreDefaultStoreByMGO 创建七牛云存储支持
@@ -34,7 +36,10 @@ func CreDefaultStoreByMGO(cfg MgoCfg) {
 	store.DefaultStore.SetVisitHTTPBase(cfg.Domain)
 }
 
-var defaultKeyManager KeyManager
+var (
+	defaultKeyManager KeyManager
+	imageInfoStyle    string
+)
 
 // UpdateKey 存储新的密钥
 // 需要现创建密钥管理器
@@ -423,4 +428,35 @@ func errCodeMatch(err error, code int) bool {
 	default:
 		return false
 	}
+}
+
+func (s *qiniuStore) GetImageInfo(key string) (ii *store.ImageInfo, err error) {
+	resp, err := http.Get(s.GetVisitURL(fmt.Sprintf("%s%s", key, imageInfoStyle)))
+	if err != nil {
+		return
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		var res struct {
+			Error string `json:"error"`
+		}
+
+		err = json.NewDecoder(resp.Body).Decode(&res)
+		if err != nil {
+			return
+		}
+		err = errors.New(res.Error)
+		return
+	}
+
+	var iis store.ImageInfo
+	err = json.NewDecoder(resp.Body).Decode(&iis)
+	if err != nil {
+		return
+	}
+	ii = &iis
+
+	return
 }

@@ -3,6 +3,7 @@ package file
 import (
 	"archive/zip"
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -345,4 +346,9 @@ func (s *fileStore) ExternalMultifileOutZipPackage(externalFiles []store.Externa
 		io.Copy(w, externalFile.FileRead)
 	}
 	return buffer, errInfo
+}
+
+func (s *fileStore) GetImageInfo(key string) (ii *store.ImageInfo, err error) {
+	err = errors.New("文件存储暂不支持")
+	return
 }
