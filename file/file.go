@@ -248,6 +248,35 @@ func (s *fileStore) MultifilePackaging(w io.Writer, keys ...store.FileAlias) (er
 	return errInfo
 }
 
+func (s *fileStore) GetImageInfo(key string) (ii *store.ImageInfo, err error) {
+	err = errors.New("文件存储暂不支持")
+	return
+}
+
+func (s *fileStore) SaveReaderAt(filename string, data io.ReaderAt, size int64) (err error) {
+	file, err := os.Open(filename)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	var buff = make([]byte, 1024)
+	for off := int64(0); off < size; {
+
+		n, err := data.ReadAt(buff, off)
+		if err != nil {
+			return err
+		}
+		_, err = file.WriteAt(buff[0:n], off)
+		if err != nil {
+			return err
+		}
+		off += int64(n)
+	}
+
+	err = errors.New("文件存储暂不支持")
+	return
+}
+
 // 外部文件一起打包
 // packfile 返回打包文件路径
 func (s *fileStore) ExternalMultifilePackaging(w io.Writer, externalFiles []store.ExternalFileAlias, keys ...store.FileAlias) error {
@@ -346,9 +375,4 @@ func (s *fileStore) ExternalMultifileOutZipPackage(externalFiles []store.Externa
 		io.Copy(w, externalFile.FileRead)
 	}
 	return buffer, errInfo
-}
-
-func (s *fileStore) GetImageInfo(key string) (ii *store.ImageInfo, err error) {
-	err = errors.New("文件存储暂不支持")
-	return
 }

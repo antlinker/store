@@ -32,13 +32,16 @@ type Storer interface {
 	GetReader(key string) (io.ReadCloser, error)
 	// 文件打包
 	MultifilePackaging(w io.Writer, keys ...FileAlias) (err error)
+
+	// 获取图片信息
+	GetImageInfo(key string) (ii *ImageInfo, err error)
+
+	SaveReaderAt(filename string, data io.ReaderAt, size int64) (err error)
+
 	// 外部文件一起打包
 	ExternalMultifilePackaging(w io.Writer, externalFiles []ExternalFileAlias, keys ...FileAlias) (err error)
 	// 输出压缩包
 	ExternalMultifileOutZipPackage(externalFiles []ExternalFileAlias, keys ...FileAlias) (buffer *bytes.Buffer, err error)
-
-	// 获取图片信息
-	GetImageInfo(key string) (ii *ImageInfo, err error)
 }
 
 // ImageInfo 图片信息
@@ -140,6 +143,11 @@ func MultifilePackaging(w io.Writer, keys ...FileAlias) (err error) {
 	return DefaultStore.MultifilePackaging(w, keys...)
 }
 
+// GetReader 获取文件流
+func GetReader(key string) (io.ReadCloser, error) {
+	return DefaultStore.GetReader(key)
+}
+
 // ExternalMultifilePackaging 外部文件与七牛云文件一起打包
 func ExternalMultifilePackaging(w io.Writer, externalFiles []ExternalFileAlias, keys ...FileAlias) (err error) {
 	return DefaultStore.ExternalMultifilePackaging(w, externalFiles, keys...)
@@ -148,9 +156,4 @@ func ExternalMultifilePackaging(w io.Writer, externalFiles []ExternalFileAlias, 
 // ExternalMultifileOutZipPackage 打包后返回数据
 func ExternalMultifileOutZipPackage(externalFiles []ExternalFileAlias, keys ...FileAlias) (buffer *bytes.Buffer, err error) {
 	return DefaultStore.ExternalMultifileOutZipPackage(externalFiles, keys...)
-}
-
-// GetReader 获取文件流
-func GetReader(key string) (io.ReadCloser, error) {
-	return DefaultStore.GetReader(key)
 }
