@@ -15,11 +15,14 @@ import (
 
 	"github.com/antlinker/store"
 
+	"regexp"
+
 	"qiniupkg.com/api.v7/conf"
 	"qiniupkg.com/api.v7/kodo"
 	"qiniupkg.com/api.v7/kodocli"
 	reqid "qiniupkg.com/x/reqid.v7"
 	"qiniupkg.com/x/rpc.v7"
+	"qiniupkg.com/x/url.v7"
 )
 
 // MgoCfg 七牛云配置
@@ -115,10 +118,14 @@ type qiniuStore struct {
 }
 
 func (s *qiniuStore) SetVisitHTTPBase(path string) {
-	s.base = path
+	if ok, err := regexp.MatchString("^https?://", path); err == nil && ok {
+		s.base = path
+	} else {
+		s.base = "http://" + path
+	}
 }
 func (s *qiniuStore) GetVisitURL(key string) string {
-	baseURL := kodo.MakeBaseUrl(s.base, key)
+	baseURL := s.base + "/" + url.Escape(key)
 	policy := kodo.GetPolicy{}
 	//生成一个client对象
 	c := kodo.New(0, nil)

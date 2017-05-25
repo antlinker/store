@@ -1,6 +1,7 @@
 package qiniu_test
 
 import (
+	"fmt"
 	"os"
 	"testing"
 
@@ -17,17 +18,17 @@ func TestQiniuUpdate(t *testing.T) {
 	// 	Domain: "odufa0grd.bkt.clouddn.com",
 	// 	Bucket: "static-test",
 	// })
-	qiniu.InitStore("", "", "mytest")
-	store.SetVisitHTTPBase("")
+	qiniu.InitStore("sdfsdfsdf", "sdfsdfsdf", "mytest")
+	store.SetVisitHTTPBase("https://www.abc")
 	//	testUpdate(t)
 	//	testReaderUpdate(t)
-	//getToken(t)
-	testRead(t)
-	testMultifilePackaging(t)
+	getToken(t)
+	//testRead(t)
+	//testMultifilePackaging(t)
 }
 
 func getToken(t *testing.T) {
-	t.Log(store.GetVisitURL("1464256-6373bdb2116a78c5.png-imageView2/0/w/48/h/48"))
+	fmt.Println(store.GetVisitURL("1464256-6373bdb2116a78c5.png-imageView2/0/w/48/h/48"))
 }
 func testReaderUpdate(t *testing.T) {
 	filename := "README.md"
