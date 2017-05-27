@@ -1,7 +1,6 @@
 package store
 
 import (
-	"bytes"
 	"io"
 	"time"
 )
@@ -148,12 +147,12 @@ func GetReader(key string) (io.ReadCloser, error) {
 	return DefaultStore.GetReader(key)
 }
 
-// ExternalMultifilePackaging 外部文件与七牛云文件一起打包
-func ExternalMultifilePackaging(w io.Writer, externalFiles []ExternalFileAlias, keys ...FileAlias) (err error) {
-	return DefaultStore.ExternalMultifilePackaging(w, externalFiles, keys...)
-}
+// // ExternalMultifilePackaging 外部文件与七牛云文件一起打包
+// func ExternalMultifilePackaging(w io.Writer, externalFiles []ExternalFileAlias, keys ...FileAlias) (err error) {
+// 	return DefaultStore.ExternalMultifilePackaging(w, externalFiles, keys...)
+// }
 
-// ExternalMultifileOutZipPackage 打包后返回数据
-func ExternalMultifileOutZipPackage(externalFiles []ExternalFileAlias, keys ...FileAlias) (buffer *bytes.Buffer, err error) {
-	return DefaultStore.ExternalMultifileOutZipPackage(externalFiles, keys...)
-}
+// // ExternalMultifileOutZipPackage 打包后返回数据
+// func ExternalMultifileOutZipPackage(externalFiles []ExternalFileAlias, keys ...FileAlias) (buffer *bytes.Buffer, err error) {
+// 	return DefaultStore.ExternalMultifileOutZipPackage(externalFiles, keys...)
+// }
