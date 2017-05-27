@@ -38,10 +38,10 @@ type Storer interface {
 
 	SaveReaderAt(filename string, data io.ReaderAt, size int64) (err error)
 
-	// 外部文件一起打包
-	ExternalMultifilePackaging(w io.Writer, externalFiles []ExternalFileAlias, keys ...FileAlias) (err error)
-	// 输出压缩包
-	ExternalMultifileOutZipPackage(externalFiles []ExternalFileAlias, keys ...FileAlias) (buffer *bytes.Buffer, err error)
+	// // 外部文件一起打包
+	// ExternalMultifilePackaging(w io.Writer, externalFiles []ExternalFileAlias, keys ...FileAlias) (err error)
+	// // 输出压缩包
+	// ExternalMultifileOutZipPackage(externalFiles []ExternalFileAlias, keys ...FileAlias) (buffer *bytes.Buffer, err error)
 }
 
 // ImageInfo 图片信息
@@ -59,11 +59,11 @@ type FileAlias struct {
 	Alias string
 }
 
-// ExternalFileAlias 文件别名映射
-type ExternalFileAlias struct {
-	FileRead io.Reader
-	Alias    string
-}
+// // ExternalFileAlias 文件别名映射
+// type ExternalFileAlias struct {
+// 	FileRead io.Reader
+// 	Alias    string
+// }
 
 // DefaultStore 默认存储
 var DefaultStore Storer

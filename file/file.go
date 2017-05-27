@@ -2,7 +2,6 @@ package file
 
 import (
 	"archive/zip"
-	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -277,102 +276,102 @@ func (s *fileStore) SaveReaderAt(filename string, data io.ReaderAt, size int64) 
 	return
 }
 
-// 外部文件一起打包
-// packfile 返回打包文件路径
-func (s *fileStore) ExternalMultifilePackaging(w io.Writer, externalFiles []store.ExternalFileAlias, keys ...store.FileAlias) error {
-	writer := zip.NewWriter(w)
-	defer writer.Close()
-	var errInfo error
-	for _, file := range keys {
-		w, err := writer.CreateHeader(&zip.FileHeader{
-			Name:   file.Alias,
-			Flags:  1 << 11,
-			Method: zip.Deflate,
-		})
-		if err != nil {
-			errInfo = err
-			break
-		}
+// // 外部文件一起打包
+// // packfile 返回打包文件路径
+// func (s *fileStore) ExternalMultifilePackaging(w io.Writer, externalFiles []store.ExternalFileAlias, keys ...store.FileAlias) error {
+// 	writer := zip.NewWriter(w)
+// 	defer writer.Close()
+// 	var errInfo error
+// 	for _, file := range keys {
+// 		w, err := writer.CreateHeader(&zip.FileHeader{
+// 			Name:   file.Alias,
+// 			Flags:  1 << 11,
+// 			Method: zip.Deflate,
+// 		})
+// 		if err != nil {
+// 			errInfo = err
+// 			break
+// 		}
 
-		f, err := os.Open(s.abs(file.Key))
-		if err != nil {
-			errInfo = err
-			f.Close()
-			break
-		}
-		_, err = io.Copy(w, f)
-		if err != nil {
-			errInfo = err
-			f.Close()
-			break
-		}
-		f.Close()
-	}
-	if errInfo != nil {
-		return errInfo
-	}
-	// 处理外部文件
-	for _, externalFile := range externalFiles {
-		w, err := writer.CreateHeader(&zip.FileHeader{
-			Name:   externalFile.Alias,
-			Flags:  1 << 11,
-			Method: zip.Deflate,
-		})
-		if err != nil {
-			errInfo = err
-			break
-		}
-		io.Copy(w, externalFile.FileRead)
-	}
-	return errInfo
-}
+// 		f, err := os.Open(s.abs(file.Key))
+// 		if err != nil {
+// 			errInfo = err
+// 			f.Close()
+// 			break
+// 		}
+// 		_, err = io.Copy(w, f)
+// 		if err != nil {
+// 			errInfo = err
+// 			f.Close()
+// 			break
+// 		}
+// 		f.Close()
+// 	}
+// 	if errInfo != nil {
+// 		return errInfo
+// 	}
+// 	// 处理外部文件
+// 	for _, externalFile := range externalFiles {
+// 		w, err := writer.CreateHeader(&zip.FileHeader{
+// 			Name:   externalFile.Alias,
+// 			Flags:  1 << 11,
+// 			Method: zip.Deflate,
+// 		})
+// 		if err != nil {
+// 			errInfo = err
+// 			break
+// 		}
+// 		io.Copy(w, externalFile.FileRead)
+// 	}
+// 	return errInfo
+// }
 
-// 外部文件一起打包，返回打包数据
-// packfile 返回打包文件路径
-func (s *fileStore) ExternalMultifileOutZipPackage(externalFiles []store.ExternalFileAlias, keys ...store.FileAlias) (*bytes.Buffer, error) {
-	buffer := new(bytes.Buffer)
-	writer := zip.NewWriter(buffer)
-	defer writer.Close()
-	var errInfo error
-	for _, file := range keys {
-		w, err := writer.CreateHeader(&zip.FileHeader{
-			Name:   file.Alias,
-			Flags:  1 << 11,
-			Method: zip.Deflate,
-		})
-		if err != nil {
-			errInfo = err
-			break
-		}
-		f, err := os.Open(s.abs(file.Key))
-		if err != nil {
-			errInfo = err
-			f.Close()
-			break
-		}
-		_, err = io.Copy(w, f)
-		if err != nil {
-			errInfo = err
-			f.Close()
-			break
-		}
-		f.Close()
-	}
-	if errInfo != nil {
-		return nil, errInfo
-	}
-	// 处理外部文件
-	for _, externalFile := range externalFiles {
-		w, err := writer.CreateHeader(&zip.FileHeader{
-			Name:   externalFile.Alias,
-			Flags:  1 << 11,
-			Method: zip.Deflate,
-		})
-		if err != nil {
-			errInfo = err
-			break
-		}
-		io.Copy(w, externalFile.FileRead)
-	}
-	return buffer, errInfo
-}
+// // 外部文件一起打包，返回打包数据
+// // packfile 返回打包文件路径
+// func (s *fileStore) ExternalMultifileOutZipPackage(externalFiles []store.ExternalFileAlias, keys ...store.FileAlias) (*bytes.Buffer, error) {
+// 	buffer := new(bytes.Buffer)
+// 	writer := zip.NewWriter(buffer)
+// 	defer writer.Close()
+// 	var errInfo error
+// 	for _, file := range keys {
+// 		w, err := writer.CreateHeader(&zip.FileHeader{
+// 			Name:   file.Alias,
+// 			Flags:  1 << 11,
+// 			Method: zip.Deflate,
+// 		})
+// 		if err != nil {
+// 			errInfo = err
+// 			break
+// 		}
+// 		f, err := os.Open(s.abs(file.Key))
+// 		if err != nil {
+// 			errInfo = err
+// 			f.Close()
+// 			break
+// 		}
+// 		_, err = io.Copy(w, f)
+// 		if err != nil {
+// 			errInfo = err
+// 			f.Close()
+// 			break
+// 		}
+// 		f.Close()
+// 	}
+// 	if errInfo != nil {
+// 		return nil, errInfo
+// 	}
+// 	// 处理外部文件
+// 	for _, externalFile := range externalFiles {
+// 		w, err := writer.CreateHeader(&zip.FileHeader{
+// 			Name:   externalFile.Alias,
+// 			Flags:  1 << 11,
+// 			Method: zip.Deflate,
+// 		})
+// 		if err != nil {
+// 			errInfo = err
+// 			break
+// 		}
+// 		io.Copy(w, externalFile.FileRead)
+// 	}
+// 	return buffer, errInfo
+// }
