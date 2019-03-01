@@ -82,7 +82,6 @@ func (m *qiniuKeySyncByMgo) Sync() {
 		fmt.Println("查询密钥失败：", err)
 		return
 	}
-	fmt.Println("查询密钥：", m)
 	if m.curv != m.Version {
 		conf.ACCESS_KEY = m.AK
 		conf.SECRET_KEY = m.SK
