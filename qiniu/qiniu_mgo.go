@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/globalsign/mgo"
+	"github.com/globalsign/mgo/bson"
+
 	"qiniupkg.com/api.v7/conf"
 	"qiniupkg.com/api.v7/kodo"
-
-	"gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
 )
 
 var (
